@@ -339,7 +339,6 @@ class triCspCreator( object ):
 			self.folderIconWidget.image = folderIconImage
 
 	def openDir( self, event ): # Used for opening directories for the mask and output folders
-		#textField = event.widget.master.winfo_children()[1]
 		dirPath = ''
 		if event.widget == self.maskIconWidget:
 			dirPath = os.path.dirname( self.maskFile.get().replace( '"', '' ) )
@@ -376,60 +375,58 @@ class triCspCreator( object ):
 
 	def createCSP( self ):
 		# Check that processing isn't already in-progress
-		if not self.creationInProgress:
+		if self.creationInProgress:
+			return
 
-			# Some last-minute validation on the config file
-			configPath = self.configFile.get().replace( '"', '' )
-			if not configPath:
-				tkMessageBox.showinfo( message='No config file has been chosen!', title='Invalid Input' )
-			elif not os.path.exists( configPath ):
-				tkMessageBox.showinfo( message='The config file could not be found (make sure that it has not been moved/renamed/deleted).', title='Invalid Input' )
-			elif not configPath.lower().endswith( '.txt' ):
-				tkMessageBox.showinfo( message='The given config file does not appear to be a text file (.txt)!', title='Invalid Input' )
+		# Some last-minute validation on the config file
+		configPath = self.configFile.get().replace( '"', '' )
+		if not configPath:
+			tkMessageBox.showinfo( message='No config file has been chosen!', title='Invalid Input' )
+		elif not os.path.exists( configPath ):
+			tkMessageBox.showinfo( message='The config file could not be found (make sure that it has not been moved/renamed/deleted).', title='Invalid Input' )
+		elif not configPath.lower().endswith( '.txt' ):
+			tkMessageBox.showinfo( message='The given config file does not appear to be a text file (.txt)!', title='Invalid Input' )
 
-			else:
-				self.creationInProgress = True
-				self.createButton['state'] = 'disabled'
-				self.createButton.update()
-				time.sleep( .2 )
+		else:
+			self.creationInProgress = True
+			self.createButton['state'] = 'disabled'
+			self.createButton.update()
+			time.sleep( .2 )
 
-				try:
-					# Collect the inputs from the various text fields
-					leftImagePaths = self.recallFilepaths( self.leftPathsInput )
-					centerImagePaths = self.recallFilepaths( self.centerPathsInput )
-					rightImagePaths = self.recallFilepaths( self.rightPathsInput )
+			try:
+				# Collect the inputs from the various text fields
+				leftImagePaths = self.recallFilepaths( self.leftPathsInput )
+				centerImagePaths = self.recallFilepaths( self.centerPathsInput )
+				rightImagePaths = self.recallFilepaths( self.rightPathsInput )
 
-					configuration = parseConfigurationFile( configPath )
-					maskPath = self.maskFile.get().replace( '"', '' )
-					outPath = self.outputPath.get().replace( '"', '' )
+				configuration = parseConfigurationFile( configPath )
+				maskPath = self.maskFile.get().replace( '"', '' )
+				outPath = self.outputPath.get().replace( '"', '' )
 
-					# Make sure there's at least one image set available to be processed
-					if len( leftImagePaths ) == 0 or len( centerImagePaths ) == 0 or len( rightImagePaths ) == 0:
-						tkMessageBox.showinfo( message='To create at least one complete CSP, you must provide a left, center, and right image.', title='Invalid Input' )
-						return
+				# Make sure there's at least one image set available to be processed
+				if len( leftImagePaths ) == 0 or len( centerImagePaths ) == 0 or len( rightImagePaths ) == 0:
+					tkMessageBox.showinfo( message='To create at least one complete CSP, you must provide a left, center, and right image.', title='Invalid Input' )
+					return
 
-					# Prepare the given input, and process it with GIMP
-					extraImages, skippedSets = self.beginGimpAutomation( leftImagePaths, centerImagePaths, rightImagePaths, maskPath, '', outPath, configuration, self.saveHighRes.get() )
+				# Prepare the given input, and process it with GIMP
+				extraImages, skippedSets = self.beginGimpAutomation( leftImagePaths, centerImagePaths, rightImagePaths, maskPath, '', outPath, configuration, self.saveHighRes.get() )
 
-					# Provide warnings to the user for any images not processed
-					if extraImages:
-						tkMessageBox.showinfo( 'The following images were not processed because no complete set was given for them:\n\n' + '\n'.join(extraImages) )
-					if skippedSets:
-						tkMessageBox.showinfo( 'Image set ' + grammarfyList( skippedSets ) + ' could not be processed because one of the images in the set could not be found.' )
+				# Provide warnings to the user for any images not processed
+				if extraImages:
+					tkMessageBox.showinfo( 'The following images were not processed because no complete set was given for them:\n\n' + '\n'.join(extraImages) )
+				if skippedSets:
+					tkMessageBox.showinfo( 'Image set ' + grammarfyList( skippedSets ) + ' could not be processed because one of the images in the set could not be found.' )
 
-					self.creationInProgress = False
-					self.createButton['state'] = 'normal'
-					self.programStatus.set( 'Processing complete' )
-					print '\nProcessing complete.'
-					
-				except Exception as e:
-					self.creationInProgress = False
-					self.createButton['state'] = 'normal'
-					self.programStatus.set( 'Processing failed' )
-					print e
-
-		#else:
-			#print 'processing already in-progress'
+				self.creationInProgress = False
+				self.createButton['state'] = 'normal'
+				self.programStatus.set( 'Processing complete' )
+				print '\nProcessing complete.'
+				
+			except Exception as e:
+				self.creationInProgress = False
+				self.createButton['state'] = 'normal'
+				self.programStatus.set( 'Processing failed' )
+				print e
 
 	def selectAll( self, event ): # Adds bindings for normal CTRL-A functionality.
 		if event.widget.winfo_class() == 'Text': event.widget.tag_add( 'sel', '1.0', 'end' )
@@ -460,8 +457,10 @@ class triCspCreator( object ):
 		self.createButton['text'] = '  Create CSP  '
 
 	def beginGimpAutomation( self, leftImagePaths, centerImagePaths, rightImagePaths, maskImagePath, configFilePath, outputPath, configuration, saveHighRes ):
-		#gimpExeFolder, gimpExeName = determineExePath()
-		if not gimpExeFolder: return
+		# Make sure the executable could be found
+		if not gimpExeFolder:
+			print 'No GIMP executable found!'
+			return
 
 		# Get the length of the shortest list, this will be how many CSPs will be created
 		cspsToCreate = 0
@@ -510,7 +509,7 @@ class triCspCreator( object ):
 
 		return extraImages, skippedSets
 
-	# - End of triCspCreator Class -
+# - End of triCspCreator Class -
 
 
 def initializeGui():
@@ -628,8 +627,10 @@ def getConfigurationFromCmd( args ):
 
 
 def beginGimpAutomationCmd( leftImagePaths, centerImagePaths, rightImagePaths, maskImagePath, configFilePath, outputPath, configuration, saveHighRes ):
-	#gimpExeFolder, gimpExeName = determineExePath()
-	if not gimpExeFolder: return
+	# Make sure the executable could be found
+	if not gimpExeFolder:
+		print 'No GIMP executable found!'
+		return
 
 	# Get the length of the shortest list, this will be how many CSPs will be created
 	cspsToCreate = 0
