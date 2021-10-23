@@ -1,0 +1,8 @@
+threshold: 40
+centerImageXOffset: -307
+centerImageYOffset: 169
+centerImageScaling: .62
+sideImagesXOffset: -421
+sideImagesYOffset: -172
+sideImagesScaling: .593
+reverseSides: False

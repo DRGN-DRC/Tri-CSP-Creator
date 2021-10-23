@@ -1,0 +1,8 @@
+# Ignore compiled python files
+*.pyc
+
+# Ignore directories output by build operations
+/[Bb]uild*/
+
+# Visual Studio Code project folder
+#.vscode
